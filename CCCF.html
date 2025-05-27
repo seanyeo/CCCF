@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CCCF</title>
+</head>
+<body>
+  <h2>🌧️ CCCF</h2>
+  <form id="cccfForm">
+    <label>Rainfall Estimation (mm):</label><br>
+    <input type="number" id="rfe_mm" step="0.1" required><br><br>
+    <label>Select AOR:</label><br>
+    <select id="aor" required>
+      <option value="" disabled selected>Select</option>
+      <option value="Aweil">Aweil</option>
+      <option value="Karamoja">Karamoja</option>
+      <option value="Mandera">Mandera</option>
+    </select><br><br>
+    <input type="submit" value="Forecast!">
+  </form>
+
+  <div id="result" style="margin-top: 20px;"></div>
+
+  <script>
+    document.getElementById("cccfForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const rfe_mm = parseFloat(document.getElementById("rfe_mm").value);
+      const aor = document.getElementById("aor").value;
+
+      const rfe_inches = rfe_mm / 25.4;
+      const ndvi = ((rfe_inches * 161.3091) + 33.4581) / 1000;
+      const ndvi_adj = Math.exp(ndvi * -1.249);
+
+      let aor_dummy = 0;
+      let constant = 0;
+
+      if (aor === "Aweil") {
+        aor_dummy = Math.exp(0);
+        constant = Math.exp(2.377969);
+      } else if (aor === "Karamoja") {
+        aor_dummy = Math.exp(-0.42795);
+        constant = Math.exp(2.378);
+      } else if (aor === "Mandera") {
+        aor_dummy = Math.exp(0.768246);
+        constant = Math.exp(2.378);
+      }
+
+      const estimated_conflict = ndvi_adj * aor_dummy * constant;
+
+      document.getElementById("result").innerHTML = `
+        <h3>📊 Results</h3>
+        <ul>
+          <li><strong>RFE (inches):</strong> ${rfe_inches.toFixed(4)}</li>
+          <li><strong>NDVI:</strong> ${ndvi.toFixed(4)}</li>
+          <li><strong>Estimated Conflict Count:</strong> ${estimated_conflict.toFixed(2)}</li>
+        </ul>
+      `;
+    });
+  </script>
+</body>
+</html>
