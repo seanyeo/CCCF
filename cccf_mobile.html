@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CCCF</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 480px;
+      margin: auto;
+      background: white;
+      padding: 1em;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 0.6em;
+      margin-top: 0.5em;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .result {
+      margin-top: 1.5em;
+      background: #eef;
+      padding: 1em;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🌧️ CCCF Conflict Estimator</h2>
+    <form id="cccfForm">
+      <label>Rainfall Estimation (mm):</label>
+      <input type="number" id="rfe_mm" step="0.1" required />
+
+      <label>Select AOR:</label>
+      <select id="aor" required>
+        <option value="" disabled selected>Select</option>
+        <option value="Aweil">Aweil</option>
+        <option value="Karamoja">Karamoja</option>
+        <option value="Mandera">Mandera</option>
+      </select>
+
+      <label>Select Month:</label>
+      <select id="month" required>
+        <option value="" disabled selected>Select</option>
+        <script>
+          for (let m = 1; m <= 12; m++) {
+            document.write(`<option value="${m}">${m}</option>`);
+          }
+        </script>
+      </select>
+
+      <label>Enter Year:</label>
+      <input type="number" id="year" min="2000" max="2100" required />
+
+      <button type="submit">Forecast!</button>
+    </form>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const historicalAvg = {
+      "Aweil": [3.75, 4.4, 6.4, 7.4, 6.2, 9, 6, 5.2, 3.2, 3.4, 3.8, 4.2],
+      "Karamoja": [1.5, 2.4, 4.2, 2.6, 3.2, 3.8, 5, 2.8, 1.8, 3.4, 2, 2],
+      "Mandera": [13.75, 12, 12.6, 11.2, 9.2, 11.8, 14.4, 14.4, 13.6, 20.2, 15.2, 10.2]
+    };
+
+    document.getElementById("cccfForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const rfe_mm = parseFloat(document.getElementById("rfe_mm").value);
+      const aor = document.getElementById("aor").value;
+      const month = parseInt(document.getElementById("month").value);
+      const year = parseInt(document.getElementById("year").value);
+
+      const rfe_inches = rfe_mm / 25.4;
+      const ndvi = ((rfe_inches * 161.3091) + 33.4581) / 1000;
+      const ndvi_adj = Math.exp(ndvi * -1.249);
+
+      let aor_dummy = 0;
+      let constant = 0;
+
+      if (aor === "Aweil") {
+        aor_dummy = Math.exp(0);
+        constant = Math.exp(2.377969);
+      } else if (aor === "Karamoja") {
+        aor_dummy = Math.exp(-0.42795);
+        constant = Math.exp(2.378);
+      } else if (aor === "Mandera") {
+        aor_dummy = Math.exp(0.768246);
+        constant = Math.exp(2.378);
+      }
+
+      const estimated_conflict = ndvi_adj * aor_dummy * constant;
+      const historical = historicalAvg[aor][month - 1];
+
+      let risk = "Medium Risk";
+      if (estimated_conflict > historical) risk = "High Risk";
+      else if (estimated_conflict < historical) risk = "Low Risk";
+
+      document.getElementById("result").innerHTML = `
+        <h3>📊 Results</h3>
+        <ul>
+          <li><strong>RFE (inches):</strong> ${rfe_inches.toFixed(4)}</li>
+          <li><strong>NDVI:</strong> ${ndvi.toFixed(4)}</li>
+          <li><strong>Estimated Conflict Count:</strong> ${estimated_conflict.toFixed(2)}</li>
+          <li><strong>Historical Avg:</strong> ${historical}</li>
+          <li><strong>Risk Level:</strong> <strong>${risk}</strong></li>
+        </ul>
+      `;
+    });
+  </script>
+</body>
+</html>
